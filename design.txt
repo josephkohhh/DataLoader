@@ -1,0 +1,47 @@
+source: https://dummyjson.com/
+destination: dataloader
+stack: fastapi, postgressql
+
+
+          ┌─────────────────────┐
+          │ DummyJSON API       │
+          │ https://dummyjson.com/users │
+          └─────────┬───────────┘
+                    │  (JSON response)
+                    ▼
+          ┌─────────────────────┐
+          │ FastAPI Endpoint    │
+          │ /extract-and-load   │
+          └─────────┬───────────┘
+                    │
+                    │ Parse & Transform
+                    ▼
+          ┌─────────────────────┐
+          │ Data Processing     │
+          │ (pandas DataFrame   │
+          │  or dict handling)  │
+          └─────────┬───────────┘
+                    │
+                    │ Load into DB
+                    ▼
+          ┌─────────────────────┐
+          │ Database            │
+          │ (Postgres / MySQL / │
+          │  SQLite etc.)       │
+          └─────────────────────┘
+
+
+Flow:
+FastAPI endpoint /load-products
+        │
+        ▼
+Fetch JSON from https://dummyjson.com/products
+        │
+        ▼
+Validate/transform (optional via Pydantic schemas)
+        │
+        ▼
+Insert into DB via CRUD functions
+        │
+        ▼
+Return success + number of products loaded

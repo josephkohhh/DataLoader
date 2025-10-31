@@ -1,0 +1,68 @@
+DummyJSON Product JSON
+┌─────────────────────────────────┐
+│ id                              │
+│ title                           │
+│ description                     │
+│ category                        │
+│ price                           │
+│ discountPercentage              │
+│ rating                          │
+│ stock                           │
+│ brand                           │
+│ sku                             │
+│ weight                          │
+│ warrantyInformation             │
+│ shippingInformation             │
+│ availabilityStatus              │
+│ returnPolicy                    │
+│ minimumOrderQuantity            │
+│ thumbnail                       │
+│ dimensions {width,height,depth} │
+│ meta {createdAt,updatedAt,...}  │
+│ reviews [ {rating,comment,...} ]│
+│ tags [ "string", ... ]          │
+│ images [ "url", ... ]           │
+└─────────────────────────────────┘
+            │
+            │ Mapping to DB
+            ▼
+┌───────────────────────────────────────────────┐
+│ Table: products                               │
+│-----------------------------------------------│
+│ id                  -> Integer PK             │
+│ title               -> String                 │
+│ description         -> Text                   │
+│ category            -> String                 │
+│ price               -> Float                  │
+│ discount_percentage -> Float                  │
+│ rating              -> Float                  │
+│ stock               -> Integer                │
+│ brand               -> String                 │
+│ sku                 -> String                 │
+│ weight              -> Float                  │
+│ warranty_information-> String                 │
+│ shipping_information-> String                 │
+│ availability_status -> String                 │
+│ return_policy       -> String                 │
+│ minimum_order_quantity -> Integer             │
+│ thumbnail           -> String                 │
+│ dimensions          -> JSON                   │
+│ meta                -> JSON                   │
+│ reviews             -> JSON                   │
+│ tags                -> JSON                   │
+│ images              -> JSON                   │
+└───────────────────────────────────────────────┘
+
+
+Notes:
+flatten simple scalar fields - title, price, stock, etc
+store arrays/nested objs as JSON to preserve structure - dimensions, meta, reviews, tags, images
+
+Optional:
+if need relational queries on dimensions, meta, reviews, tags, images
+- create seperate tables instead of JSON 
+- ex. 
+    SELECT p.title, r.rating, r.comment
+    FROM products p
+    JOIN reviews r ON p.id = r.product_id
+    WHERE r.rating >= 4;

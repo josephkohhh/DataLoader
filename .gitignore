@@ -1,0 +1,25 @@
+# Node.js
+node_modules/
+
+# Python
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual environments
+venv/
+.venv/
+env/
+ENV/
+myenv/
+
+
+# Optional: Python packaging
+build/
+dist/
+*.egg-info/
+
+# Optional: Environment files
+# Add .env if you store sensitive config there
+.env

@@ -5,7 +5,7 @@
 
 from fastapi import FastAPI, Depends, HTTPException
 from dotenv import load_dotenv
-from . import models, database, crud
+import models, database, crud
 from sqlalchemy.orm import Session
 import os
 import requests # pip install requests
@@ -17,7 +17,10 @@ models.Base.metadata.create_all(bind=database.engine) # Create tables in db defi
 
 @app.get("/")
 def root(): 
-    return {"message": "Welcome to DataLoader API\nGo to /docs to test out the API"}
+    return {
+        "message": "Welcome to DataLoader API",
+        "info": "Go to /docs to test out the API"
+    }
 
 
 @app.post('/load-products')
@@ -27,15 +30,15 @@ def load_products(db: Session = Depends(database.get_db)):
     """
     url = os.getenv('EXTERNAL_API_URL')
     try:
-        response = requests.get(url)
+        response = requests.get(url) # raw JSON string
         response.raise_for_status()
     except requests.RequestException as e:
         raise HTTPException(status_code=500, detail=f"Failed to fetch data: {e}")
 
 
-    data = response.json()
-    products = data.get('products',[]) 
-    if not products:
+    data = response.json() # convert to Parsed JSON
+    products = data.get('products',[]) # It means dict.get(key, default)
+    if not products: # if empty
         raise HTTPException(status_code=404, detail=f"No products found in DummyJSON API: {e}")
 
     # Use CRUD to insert

@@ -1,10 +1,15 @@
-# crud.py - CRUD functions 
+# crud.py - CRUD functions
 
 from sqlalchemy.orm import Session
 import models, schemas
 from pydantic import ValidationError
 from sqlalchemy.exc import SQLAlchemyError
-from datetime import datetime, date 
+from datetime import datetime, date
+import logging
+from sqlalchemy import text
+
+logger = logging.getLogger(__name__)
+
 
 def to_json_safe(data):
     """
@@ -26,27 +31,50 @@ def to_json_safe(data):
         return data  # already a primitive type
 
 
+def get_all_products(db: Session):
+    """
+    Fetch all products from the database with error handling
+    """
+    try:
+        products = db.query(models.Product).all()
+        return products
+    except SQLAlchemyError as e:
+        logger.error(f"DB error fetching products: {e}", exc_info=True)
+        return [] # return empty list if DB fails
+    
+
+def get_product_by_id(product_id: int, db: Session, ):
+    """
+    Fetch all products from the database with error handling
+    """
+    try:
+        product = db.query(models.Product).filter(models.Product.id == product_id).first()
+        return product
+    except SQLAlchemyError as e:
+        logger.error(f"DB error fetching product: {e}", exc_info=True)
+        return None
+
+
 def create_product(db: Session, product: dict):
     """
     Insert a product into the database
     Accepts a dict from DummyJSON API
     Skips insertion if product with same ID already exists
     """
-    product_id = product.get('id')
+    product_id = product.get("id")
 
     # Check if product already exists
     existing = db.query(models.Product).filter(models.Product.id == product_id).first()
     if existing:
-        print(f"Skipping duplicate product ID {product_id}: {existing.title}")
+        logger.info(f"Skipping duplicate product ID {product_id}: {existing.title}")
         return existing
 
     # Validate product data format
     try:
         validated = schemas.ProductCreate(**product)
     except ValidationError as e:
-        print(f"Skipping invalid product ID {product_id}: {e.errors()}")
-        return None 
-    
+        logger.warning(f"Skipping invalid product ID {product_id}: {e.errors()}")
+        return None
 
     # Convert to plain JSON-serializable dict
     data = to_json_safe(validated)
@@ -57,12 +85,12 @@ def create_product(db: Session, product: dict):
     try:
         db.commit()
         db.refresh(db_product)
-        print(f"Inserted product ID {product_id}: {validated.title}")
+        logger.info(f"Inserted product ID {product_id}: {validated.title}")
     except SQLAlchemyError as e:
         db.rollback()
-        print(f"DB error while inserting product ID {product_id}: {e}")
+        logger.error(f"DB error while inserting product ID {product_id}: {e}", exc_info=True)
         return None
-    
+
     return db_product
 
 
@@ -73,9 +101,49 @@ def bulk_create_products(db: Session, products: list[dict]):
     created_count = 0
 
     for p in products:
-        result = create_product(db,p)
+        result = create_product(db, p)
         if result:
             created_count += 1
-    
-    print(f"Loaded {created_count} products into database.")
+
+    logger.info(f"Loaded {created_count} products into database.")
     return created_count
+
+
+def delete_product(product_id: int, db: Session):
+    """
+    Delete a product from the database by product_id.
+    """
+    try:
+        product = db.query(models.Product).filter(models.Product.id == product_id).first()
+        if not product:
+            return None
+        
+        db.delete(product)
+        db.commit()
+        return product  
+    
+    except SQLAlchemyError as e:
+        logger.error(f"DB error deleting product ID {product_id}: {e}", exc_info=True)
+        db.rollback()
+        return None
+    
+
+def delete_all_products(db: Session):
+    """
+    Delete all products from the database.
+    """
+    try:
+        # Delete all rows
+        db.query(models.Product).delete()
+        db.commit()
+
+        # Reset PostgreSQL sequence
+        db.execute(text("ALTER SEQUENCE products_id_seq RESTART WITH 1"))
+        db.commit()
+
+        return True
+    
+    except SQLAlchemyError as e:
+        logger.error(f"DB error deleting all products: {e}", exc_info=True)
+        db.rollback()
+        return False

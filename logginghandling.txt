@@ -1,0 +1,7 @@
+| Action                            | Where         | Example                                                                |
+| --------------------------------- | ------------- | ---------------------------------------------------------------------- |
+| Log full error (with stack trace) | Server logs   | `logger.error(..., exc_info=True)`                                     |
+| Return error to client            | HTTP response | `raise HTTPException(status_code=500, detail="Internal server error")` |
+| Debug (optional)                  | Dev console   | `print(f"Error: {e}")` (replace with logger in production)             |
+
+

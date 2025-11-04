@@ -63,7 +63,7 @@ class Config:
 
 
 # print(p)  
-# Product(title='10', description='', category='')
+# Product(title='10', description='', category='') pydantic obj
 
 # print(p.model_dump())  
-# {'width': 10, 'height': 20, 'depth': 30}
+# {'width': 10, 'height': 20, 'depth': 30} dict

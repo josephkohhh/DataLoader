@@ -1,3 +1,6 @@
+A response contains the HTTP status code, headers, and body.
+
+
 1xx - Informational
 
 | Code | Meaning             |

@@ -1,4 +1,6 @@
-This repo contains source code for fastapi-test, a simple backend CRUD app
+This repo contains source code for dataloader, a fastAPI app
+
+<img src="dataloader.png" alt="Banner Image" title="Banner Image" width="550px" height="450px">
 
 ## Table of Contents
 
@@ -35,8 +37,10 @@ app/
 
 ## Features
 
-- Fetch all
-- Fetch by id
-- Create
-- Update
-- Delete
+- Load data from external API
+- Add data
+- Get data
+- Get data by id
+- Update data by id
+- Delete all data
+- Delete data by id

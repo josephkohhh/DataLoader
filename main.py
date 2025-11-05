@@ -26,7 +26,7 @@ def root():
         "info": "Go to /docs to test out the API"
     }
 
-@app.get('/get-all-products', response_model=list[schemas.ProductResponse])
+@app.get('/get-all-products/', response_model=list[schemas.ProductResponse])
 def fetch_all_products(db: Session = Depends(database.get_db)):
     """
     Fetch all products from the database
@@ -39,7 +39,7 @@ def fetch_all_products(db: Session = Depends(database.get_db)):
         raise HTTPException(status_code=500, detail="Failed to fetch products")
 
 
-@app.get('/get_product_by_id/{id}', response_model=schemas.ProductResponse)
+@app.get('/get-product-by-id/{id}', response_model=schemas.ProductResponse)
 def fetch_product_by_id(id: int, db: Session = Depends(database.get_db)):
     """
     Fetch product by id from the database
@@ -79,7 +79,7 @@ def load_products(db: Session = Depends(database.get_db)):
     return {"message": f"Loaded {inserted_count} new products into the database"}
 
 
-@app.post('/add-product/')
+@app.post('/add-product')
 def add_product(product: schemas.ProductCreate, db: Session = Depends(database.get_db)):
     """ 
     Create a product and add to database

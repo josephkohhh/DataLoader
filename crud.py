@@ -19,6 +19,7 @@ def to_json_safe(data):
     if data is None:
         return None
     elif isinstance(data, (datetime, date)):
+        # datetime objs are not serializable by json hence
         # Convert datetime/date to ISO 8601 string (safe for JSON)
         return data.isoformat()
     elif hasattr(data, "model_dump"):  # Pydantic model
@@ -61,37 +62,38 @@ def create_product(db: Session, product: dict):
     Accepts a dict from DummyJSON API
     Skips insertion if product with same ID already exists
     """
-    product_id = product.get("id")
+    id = product.get("id")
 
     # Check if product already exists
-    existing = db.query(models.Product).filter(models.Product.id == product_id).first()
+    existing = db.query(models.Product).filter(models.Product.id == id).first()
     if existing:
-        logger.info(f"Skipping duplicate product ID {product_id}: {existing.title}")
-        return existing
+        logger.info(f"Skipping duplicate product ID {id}: {existing.title}")
+        return existing, False # Not created
 
     # Validate product data format
     try:
         validated = schemas.ProductCreate(**product)
     except ValidationError as e:
-        logger.warning(f"Skipping invalid product ID {product_id}: {e.errors()}")
-        return None
+        logger.warning(f"Skipping invalid product ID {id}: {e.errors()}")
+        return None, False # validation error
 
     # Convert to plain JSON-serializable dict
     data = to_json_safe(validated)
 
-    db_product = models.Product(**data)
+    db_product = models.Product(**data) # Unpacked to kwargs
     db.add(db_product)
 
     try:
         db.commit()
         db.refresh(db_product)
-        logger.info(f"Inserted product ID {product_id}: {validated.title}")
+        logger.info(f"Inserted product ID {id}: {validated.title}")
+        return db_product, True  # Newly created 
     except SQLAlchemyError as e:
         db.rollback()
-        logger.error(f"DB error while inserting product ID {product_id}: {e}", exc_info=True)
-        return None
+        logger.error(f"DB error while inserting product ID {id}: {e}", exc_info=True)
+        return None, False  # DB error
 
-    return db_product
+    
 
 
 def bulk_create_products(db: Session, products: list[dict]):
@@ -101,20 +103,75 @@ def bulk_create_products(db: Session, products: list[dict]):
     created_count = 0
 
     for p in products:
-        result = create_product(db, p)
-        if result:
+        # Unpack tuple
+        # _ -> ignore first value (product_instance)
+        # is_created -> keep second value (True/False)
+        _, is_created = create_product(db, p)
+        if is_created:
             created_count += 1
 
     logger.info(f"Loaded {created_count} products into database.")
     return created_count
 
 
-def delete_product(product_id: int, db: Session):
+
+def update_product(id: int, product_data: dict, db: Session):
+    """
+    Update product by ID. Safely merges JSON fields and updates meta.updatedAt.
+    Converts any datetime objects to ISO strings before saving.
+    """
+    try:
+        db_product = db.query(models.Product).filter(models.Product.id == id).first()
+        if not db_product:
+            return None
+
+        json_fields = ["meta", "dimensions", "reviews", "tags", "images"]
+
+        for key, value in product_data.items():
+            if value is None:
+                continue
+
+            if key in json_fields:
+                # Get current value or empty dict/list
+                current = getattr(db_product, key)
+                if current is None:
+                    current = {} if isinstance(value, dict) else []
+                
+                # Convert new value to JSON-safe types
+                safe_value = to_json_safe(value)
+
+                # Merge if dict, replace if list
+                if isinstance(current, dict) and isinstance(safe_value, dict):
+                    current.update(safe_value)
+                    setattr(db_product, key, current)
+                else:
+                    setattr(db_product, key, safe_value)
+            else:
+                setattr(db_product, key, value)
+
+        # Update internal meta.updatedAt
+        meta = to_json_safe(db_product.meta) or {}  # Ensure dict and JSON-safe
+        meta["updatedAt"] = datetime.utcnow().isoformat()
+        db_product.meta = meta  # Reassign to trigger SQLAlchemy change tracking
+
+        db.commit()
+        db.refresh(db_product)
+        return db_product
+
+    except SQLAlchemyError as e:
+        logger.error(f"DB error updating product {id}: {e}", exc_info=True)
+        db.rollback()
+        return None
+
+
+
+
+def delete_product(id: int, db: Session):
     """
     Delete a product from the database by product_id.
     """
     try:
-        product = db.query(models.Product).filter(models.Product.id == product_id).first()
+        product = db.query(models.Product).filter(models.Product.id == id).first()
         if not product:
             return None
         
@@ -123,7 +180,7 @@ def delete_product(product_id: int, db: Session):
         return product  
     
     except SQLAlchemyError as e:
-        logger.error(f"DB error deleting product ID {product_id}: {e}", exc_info=True)
+        logger.error(f"DB error deleting product ID {id}: {e}", exc_info=True)
         db.rollback()
         return None
     
@@ -138,7 +195,7 @@ def delete_all_products(db: Session):
         db.commit()
 
         # Reset PostgreSQL sequence
-        db.execute(text("ALTER SEQUENCE products_id_seq RESTART WITH 1"))
+        db.execute(text('ALTER SEQUENCE "products_columnId_seq" RESTART WITH 1'))
         db.commit()
 
         return True

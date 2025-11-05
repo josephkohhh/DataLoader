@@ -26,10 +26,11 @@ class Review(BaseModel):
 
 # Product 
 class ProductBase(BaseModel):
-    title: str
+    id: int = Field(..., gt=0)  # Required and must be > 0
+    title: str = Field(..., min_length=1)  # Required and non-empty
     description: Optional[str] = None
     category: Optional[str] = None
-    price: float
+    price: float # Required 
     discountPercentage: Optional[float] = None
     rating: Optional[float] = None
     stock: Optional[int] = None
@@ -44,17 +45,43 @@ class ProductBase(BaseModel):
     thumbnail: Optional[str] = None
     dimensions: Optional[Dimensions] = None
     meta: Optional[Meta] = None
-    reviews: List[Review] = Field(default_factory=list)
-    tags: List[str] = Field(default_factory=list)
-    images: List[str] = Field(default_factory=list)
-
+    reviews: List[Review] = Field(default_factory=list) # Field is optional
+    tags: List[str] = Field(default_factory=list) # Field is optional
+    images: List[str] = Field(default_factory=list) # Field is optional
+    
+    
 # for POST requests
 class ProductCreate(ProductBase): 
-    pass  # all fields optional for flexibility if needed
+    pass  # inherit ProductBase
+
+# for PUT requests
+class ProductUpdate(BaseModel):
+    title: Optional[str] = None
+    description: Optional[str] = None
+    category: Optional[str] = None
+    price: Optional[float] = None
+    discountPercentage: Optional[float] = None
+    rating: Optional[float] = None
+    stock: Optional[int] = None
+    brand: Optional[str] = None
+    sku: Optional[str] = None
+    weight: Optional[float] = None
+    warrantyInformation: Optional[str] = None
+    shippingInformation: Optional[str] = None
+    availabilityStatus: Optional[str] = None
+    returnPolicy: Optional[str] = None
+    minimumOrderQuantity: Optional[int] = None
+    thumbnail: Optional[str] = None
+    dimensions: Optional[Dimensions] = None
+    meta: Optional[Meta] = None
+    reviews: Optional[List[Review]] = None
+    tags: Optional[List[str]] = None
+    images: Optional[List[str]] = None
+
 
 # for GET responses - includes the id field
 class ProductResponse(ProductBase):
-    id: int 
+    pass  # inherit ProductBase
 
 
 

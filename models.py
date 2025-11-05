@@ -9,7 +9,8 @@ Base = declarative_base() # Instantiate base class
 class Product(Base):
     __tablename__ = 'products'
 
-    id = Column(Integer, primary_key=True, index=True)
+    columnId = Column(Integer, primary_key=True, index=True)
+    id = Column(Integer)
     title = Column(String, nullable=False)
     description = Column(Text)
     category = Column(String)
